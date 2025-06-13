@@ -17,21 +17,34 @@ function calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number
   return (toDeg(θ) + 360) % 360;
 }
 
-export function detectHalse(points: any[]) {
-  const results = [];
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1];
-    const curr = points[i];
-    const bearing1 = calculateBearing(prev.lat, prev.lon, curr.lat, curr.lon);
-    if (i < points.length - 1) {
-      const next = points[i + 1];
-      const bearing2 = calculateBearing(curr.lat, curr.lon, next.lat, next.lon);
-      const delta = Math.abs(bearing2 - bearing1);
-      const normalizedDelta = delta > 180 ? 360 - delta : delta;
-      if (normalizedDelta > 90) {
-        results.push({ index: i, lat: curr.lat, lon: curr.lon, delta: normalizedDelta });
+export function detectHalse(points: any[], speedThreshold = 8, angleThreshold = 90, windowSize = 10) {
+  const results: { index: number; type: 'halse' | 'crash' | 'none' }[] = [];
+
+  for (let i = windowSize; i < points.length - windowSize; i++) {
+    const start = points[i - windowSize];
+    const center = points[i];
+    const end = points[i + windowSize];
+
+    const bearing1 = calculateBearing(start.lat, start.lon, center.lat, center.lon);
+    const bearing2 = calculateBearing(center.lat, center.lon, end.lat, end.lon);
+
+    let delta = Math.abs(bearing2 - bearing1);
+    if (delta > 180) delta = 360 - delta;
+
+    if (delta >= angleThreshold) {
+      const speeds = points.slice(i - windowSize, i + windowSize + 1).map((p) => p.speed || 0);
+      const maxSpeed = Math.max(...speeds);
+      const minSpeed = Math.min(...speeds);
+
+      if (maxSpeed < speedThreshold) {
+        results.push({ index: i, type: "none" });
+      } else if (minSpeed < speedThreshold) {
+        results.push({ index: i, type: "crash" });
+      } else {
+        results.push({ index: i, type: "halse" });
       }
     }
   }
+
   return results;
 }
