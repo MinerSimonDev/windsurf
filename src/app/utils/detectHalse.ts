@@ -33,12 +33,12 @@ export function detectHalse(points: any[], speedThreshold = 8, angleThreshold = 
 
     if (delta >= angleThreshold) {
       const speeds = points.slice(i - windowSize, i + windowSize + 1).map((p) => p.speed || 0);
-      const maxSpeed = Math.max(...speeds);
-      const minSpeed = Math.min(...speeds);
+      const everAbove = speeds.some((s) => s > speedThreshold);
+      const everBelow = speeds.some((s) => s < speedThreshold);
 
-      if (maxSpeed < speedThreshold) {
+      if (!everAbove) {
         results.push({ index: i, type: "none" });
-      } else if (minSpeed < speedThreshold) {
+      } else if (everBelow) {
         results.push({ index: i, type: "crash" });
       } else {
         results.push({ index: i, type: "halse" });

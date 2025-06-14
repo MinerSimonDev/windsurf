@@ -71,7 +71,7 @@ export default function AlgorithmPage() {
             <Button
               variant="outline"
               size="sm"
-              className="flex items-center gap-2 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+              className="cursor-pointer flex items-center gap-2 hover:bg-blue-50 hover:text-blue-700 transition-colors"
             >
               <ArrowLeft size={16} />
               Zurück zur Hauptseite

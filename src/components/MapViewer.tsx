@@ -1,21 +1,33 @@
-// src/components/MapViewer.tsx
 "use client";
 
-import { MapContainer, TileLayer, Polyline } from "react-leaflet";
+import { useEffect, useRef, useState } from "react";
+import { MapContainer, TileLayer, Polyline, Marker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { LatLngExpression } from "leaflet";
+import { LatLngExpression, Map as LeafletMap } from "leaflet";
 
 interface Point {
   latitude: number;
   longitude: number;
   isHalse?: boolean;
+  time?: string;
+  speed?: number;
 }
 
-export default function MapViewer({
-  data,
-}: {
-  data: Point[];
-}) {
+function MarkerUpdater({ point }: { point: Point }) {
+  const map = useMap();
+  useEffect(() => {
+    if (point) {
+      map.setView([point.latitude, point.longitude], map.getZoom());
+    }
+  }, [point, map]);
+
+  return <Marker position={[point.latitude, point.longitude]} />;
+}
+
+export default function MapViewer({ data }: { data: Point[] }) {
+  const [index, setIndex] = useState(0);
+  const selectedPoint = data[index];
+
   if (data.length === 0) return null;
 
   const segments: { path: LatLngExpression[]; color: string }[] = [];
@@ -29,15 +41,14 @@ export default function MapViewer({
 
     if (currentSegment.length === 0) {
       currentSegment.push(latlng);
-      currentColor = isHalse ? "red" : "blue";
+      currentColor = isHalse ? "yellow" : "blue";
     } else {
       const lastColor = currentColor;
-      currentColor = isHalse ? "red" : "blue";
+      currentColor = isHalse ? "yellow" : "blue";
 
       if (lastColor === currentColor) {
         currentSegment.push(latlng);
       } else {
-        // segment endet
         if (currentSegment.length > 1) {
           segments.push({ path: [...currentSegment], color: lastColor });
         }
@@ -53,11 +64,29 @@ export default function MapViewer({
   const center: LatLngExpression = [data[0].latitude, data[0].longitude];
 
   return (
-    <MapContainer center={center} zoom={17} style={{ height: "500px", width: "100%" }}>
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      {segments.map((segment, idx) => (
-        <Polyline key={idx} positions={segment.path} color={segment.color} />
-      ))}
-    </MapContainer>
+    <div className="flex flex-col h-full">
+      <MapContainer center={center} zoom={17} style={{ height: "500px", width: "100%" }}>
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {segments.map((segment, idx) => (
+          <Polyline key={idx} positions={segment.path} color={segment.color} />
+        ))}
+        <MarkerUpdater point={selectedPoint} />
+      </MapContainer>
+
+      <div className="p-4">
+        <input
+          type="range"
+          min={0}
+          max={data.length - 1}
+          value={index}
+          onChange={(e) => setIndex(parseInt(e.target.value))}
+          className="w-full"
+        />
+        <div className="text-center mt-2 text-sm">
+          Zeit: {selectedPoint.time ? new Date(selectedPoint.time).toLocaleString() : "Unbekannt"} <br />
+          Geschwindigkeit: {selectedPoint.speed?.toFixed(1) ?? "?"} km/h
+        </div>
+      </div>
+    </div>
   );
 }
